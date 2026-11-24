@@ -1,0 +1,25 @@
+{
+  "name": "Transcríbelo — transcribe tus eventos",
+  "short_name": "Transcríbelo",
+  "description": "Graba y transcribe eventos largos y prepara un documento ordenado para los asistentes.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf6f1",
+  "theme_color": "#7a2e1f",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

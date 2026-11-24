@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Transcríbelo</title>
+<meta name="description" content="Transcribe eventos largos y prepara un documento ordenado para los asistentes.">
+<meta name="theme-color" content="#7a2e1f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+<header class="barra">
+  <button id="btnInicio" class="icono" aria-label="Volver al inicio" hidden>←</button>
+  <h1 id="tituloBarra">Transcríbelo</h1>
+</header>
+
+<main>
+  <!-- INICIO -->
+  <section id="vInicio" class="vista">
+    <button id="btnNuevo" class="grande primario">● Nuevo evento</button>
+    <div id="avisoNav" class="aviso" hidden></div>
+    <h2>Eventos guardados</h2>
+    <ul id="listaSesiones" class="lista"></ul>
+    <p id="sinSesiones" class="tenue">Todavía no hay ningún evento guardado.</p>
+    <details class="caja">
+      <summary>Importar una transcripción (.txt)</summary>
+      <p class="tenue">Por ejemplo, la que hace el ordenador a partir del audio. Formato: una línea por frase, con <code>[hh:mm:ss]</code> delante (opcional).</p>
+      <input type="file" id="archivoImportar" accept=".txt,.md,text/plain">
+    </details>
+    <p class="pie">Hecho con IA (Claude) para Ricardo Llastarry · Las grabaciones se guardan en este dispositivo. El texto en directo usa el reconocimiento de voz de Google.</p>
+  </section>
+
+  <!-- NUEVO -->
+  <section id="vNuevo" class="vista" hidden>
+    <label>Nombre del evento<input id="fTitulo" placeholder="Ej.: Taller de IA en Rubí"></label>
+    <label>Fecha<input id="fFecha" type="date"></label>
+    <label>Ponentes (opcional)<input id="fPonentes" placeholder="Ej.: Ricardo Llastarry"></label>
+    <label>Lugar (opcional)<input id="fLugar" placeholder="Ej.: Rubí"></label>
+    <label>Idioma en que se habla
+      <select id="fIdioma">
+        <option value="es-ES">Castellano</option>
+        <option value="ca-ES">Català</option>
+        <option value="en-US">English</option>
+      </select>
+    </label>
+    <fieldset>
+      <legend>Cómo grabar</legend>
+      <label class="op"><input type="radio" name="modo" value="ambos" checked> <b>Texto en directo + audio</b> (recomendado: si el texto falla, queda el audio)</label>
+      <label class="op"><input type="radio" name="modo" value="texto"> Solo texto en directo</label>
+      <label class="op"><input type="radio" name="modo" value="audio"> Solo audio (el texto se saca luego en el ordenador; no necesita internet)</label>
+    </fieldset>
+    <div class="caja aviso">
+      <b>Antes de empezar</b>
+      <ul>
+        <li>Avisa al público: grabas para hacerles un resumen escrito; se usa el reconocimiento de Google y una IA; no se reparte el audio; quien no quiera constar, que lo diga.</li>
+        <li>Lleva otra grabadora como respaldo (la Grabadora del móvil de otra persona, por ejemplo).</li>
+        <li>Móvil enchufado o con batería llena, y cerca de quien habla.</li>
+        <li>El texto en directo necesita internet (datos o wifi).</li>
+        <li>No bloquees el móvil ni cambies de app. La app intenta mantener la pantalla encendida, pero el ahorro de batería puede impedirlo: quítalo.</li>
+      </ul>
+    </div>
+    <button id="btnEmpezar" class="grande primario">● Empezar a grabar</button>
+  </section>
+
+  <!-- GRABANDO -->
+  <section id="vGrabar" class="vista" hidden>
+    <div class="estado">
+      <span id="luz" class="luz"></span>
+      <span id="estadoTxt">Preparando…</span>
+      <span id="reloj" class="reloj">00:00:00</span>
+    </div>
+    <div id="nivel" class="nivel" hidden><div id="nivelBarra"></div></div>
+    <div id="avisoGrabar" class="aviso" hidden></div>
+    <div id="textoVivo" class="vivo" aria-live="polite"></div>
+    <div class="botonera">
+      <button id="btnMarca" class="medio">★ Momento importante</button>
+      <button id="btnTema" class="medio">§ Nuevo tema</button>
+    </div>
+    <div class="botonera">
+      <button id="btnPausa" class="medio">❚❚ Pausa</button>
+      <button id="btnTerminar" class="medio peligro">■ Terminar</button>
+    </div>
+    <p id="contador" class="tenue"></p>
+  </section>
+
+  <!-- SESIÓN -->
+  <section id="vSesion" class="vista" hidden>
+    <div id="infoSesion" class="tenue"></div>
+    <div id="avisoSesion" class="aviso" hidden></div>
+    <nav class="pestanas" role="tablist">
+      <button data-p="pTrans" class="activa">1. Texto</button>
+      <button data-p="pLimpia">2. Limpio</button>
+      <button data-p="pIA">3. IA</button>
+      <button data-p="pExport">4. Enviar</button>
+    </nav>
+
+    <div id="pTrans" class="panel">
+      <p class="tenue">Texto tal como se ha captado. Puedes corregirlo aquí (nombres mal escritos, etc.) y pulsar Guardar.</p>
+      <textarea id="txtBruto" rows="18"></textarea>
+      <div class="botonera">
+        <button id="btnGuardarBruto" class="medio">Guardar cambios</button>
+        <button id="btnContinuar" class="medio">● Seguir grabando</button>
+      </div>
+      <div id="cajaAudio" class="caja" hidden>
+        <b>Audio grabado</b>
+        <div id="listaAudios"></div>
+      </div>
+    </div>
+
+    <div id="pLimpia" class="panel" hidden>
+      <p class="tenue">La app quita muletillas («eh», «ehm»…) y palabras repetidas, pone mayúsculas y puntos, y separa por párrafos y temas. Es automático y sin internet, pero <b>no resume</b>: para eso, la pestaña 3 (IA).</p>
+      <div id="vistaLimpia" class="doc"></div>
+    </div>
+
+    <div id="pIA" class="panel" hidden>
+      <ol class="pasos">
+        <li>Pulsa <b>Copiar para Claude</b>: copia la transcripción con las instrucciones.</li>
+        <li>Abre Claude (app o claude.ai), pega y envía.</li>
+        <li>Copia la respuesta de Claude y pégala abajo. Pulsa <b>Guardar</b>.</li>
+      </ol>
+      <div class="botonera">
+        <button id="btnCopiarIA" class="medio primario">Copiar para Claude</button>
+        <a class="boton medio" href="https://claude.ai/new" target="_blank" rel="noopener">Abrir Claude</a>
+      </div>
+      <details class="caja"><summary>Ver las instrucciones que se envían</summary><pre id="verPrompt" class="prompt"></pre></details>
+      <textarea id="txtIA" rows="14" placeholder="Pega aquí la versión ordenada que te devuelva Claude…"></textarea>
+      <div class="botonera"><button id="btnGuardarIA" class="medio">Guardar</button></div>
+      <div id="vistaIA" class="doc"></div>
+    </div>
+
+    <div id="pExport" class="panel" hidden>
+      <label>¿Qué versión?
+        <select id="selVersion">
+          <option value="ia">Ordenada por IA (para los asistentes)</option>
+          <option value="limpia">Limpia automática</option>
+          <option value="bruta">Transcripción completa con minutos</option>
+        </select>
+      </label>
+      <div class="rejilla">
+        <button data-f="pdf" class="grande primario">PDF</button>
+        <button data-f="doc">Word</button>
+        <button data-f="txt">Texto (.txt)</button>
+        <button data-f="md">Markdown</button>
+      </div>
+      <label class="op"><input type="checkbox" id="chkCompartir" checked> Al pulsar, abrir «Compartir» (WhatsApp, correo, Drive…). Si no, se descarga.</label>
+      <p class="tenue">Los archivos descargados van a la carpeta <b>Descargas</b> del móvil o del ordenador.</p>
+      <hr>
+      <button id="btnBorrar" class="medio peligro">Borrar este evento</button>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="app.js?v=2"></script>
+</body>
+</html>
