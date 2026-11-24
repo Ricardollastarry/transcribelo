@@ -1,7 +1,7 @@
 /* Guarda la app en el dispositivo para que abra rápido y también sin conexión.
    (La transcripción en directo sí necesita internet; grabar solo audio, no.) */
-const CACHE = 'transcribelo-v2';
-const SHELL = ['./', 'index.html', 'styles.css?v=2', 'app.js?v=2', 'manifest.webmanifest',
+const CACHE = 'transcribelo-v3';
+const SHELL = ['./', 'index.html', 'styles.css?v=3', 'app.js?v=3', 'manifest.webmanifest',
   'icons/icon.svg',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'];
 self.addEventListener('install', (e) => {

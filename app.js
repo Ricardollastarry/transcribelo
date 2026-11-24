@@ -189,10 +189,10 @@ function tic() {
 function empezarTexto() {
   const r = new Reconocedor();
   r.lang = sesion.idioma; r.continuous = true; r.interimResults = true; r.maxAlternatives = 1;
-  r.onstart = () => { G.ultimoFinal = ''; };
-  G.espera = 250;
+  r.onstart = () => { G.ultimoFinal = ''; G.huboTexto = false; };
+  G.espera = 250; G.vacios = 0;
   r.onresult = (e) => {
-    G.ultimoResultado = Date.now(); G.espera = 250;
+    G.ultimoResultado = Date.now(); G.espera = 250; G.huboTexto = true; G.vacios = 0;
     let provisional = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const res = e.results[i]; let t = res[0].transcript.trim();
@@ -222,6 +222,17 @@ function empezarTexto() {
     } else estado('Aviso: ' + e.error + ' (reintentando)', 'on');
   };
   r.onend = () => {
+    // En muchos Android, si se graba audio a la vez, el reconocedor no oye nada,
+    // se apaga y vuelve a encenderse con un pitido cada pocos segundos: lo paramos.
+    if (G.rec === r && !G.huboTexto && G.mr) {
+      G.vacios = (G.vacios || 0) + 1;
+      if (G.vacios >= 3) {
+        G.rec = null;
+        avisoGrabar('<b>En este móvil el texto en directo no funciona a la vez que el audio.</b> He parado el texto (se acaban los pitidos). <b>El audio sigue grabándose</b>: el texto lo sacarás luego en el ordenador.');
+        estado('Grabando audio', 'on');
+        return;
+      }
+    }
     // El navegador corta cada cierto tiempo: se vuelve a encender solo
     if (G.rec === r && G.activa && !G.pausada) setTimeout(() => { if (G.rec === r && G.activa && !G.pausada) { try { r.start(); } catch { /* ya activo */ } } }, G.espera || 250);
   };
@@ -331,7 +342,7 @@ async function abrirSesion(id) {
   $('#txtBruto').value = segsATexto(segs);
   $('#txtIA').value = sesion.textoIA || '';
   $('#vistaIA').innerHTML = mdAHtml(sesion.textoIA || '');
-  $('#selVersion').value = 'ia';
+  $('#selVersion').value = sesion.textoIA ? 'ia' : 'limpia';
   pintarLimpia();
   pintarAudios();
   pestana('pTrans');
@@ -496,7 +507,9 @@ function textoVersion(v) {
 }
 $$('#pExport [data-f]').forEach((b) => (b.onclick = () => exportar(b.dataset.f)));
 async function exportar(f) {
-  const v = $('#selVersion').value; let md = textoVersion(v);
+  const v = $('#selVersion').value;
+  if (!$('#txtBruto').value.trim() && !sesion.textoIA) return aviso('Este evento aún no tiene texto (solo audio). Pestaña 1 → «Enviar audio» al ordenador → arrástralo a «Transcribir audio.bat» → y en la app: Inicio → «Importar una transcripción».', 9000);
+  let md = textoVersion(v);
   if (!md || !md.trim()) return aviso(v === 'ia' ? 'Aún no hay versión ordenada: hazla en la pestaña 3, o elige otra versión.' : 'No hay texto todavía.', 4500);
   if (v !== 'ia' && !confirm('Ojo: esta versión no quita los nombres que se dijeran del público. Para los asistentes es mejor la «Ordenada por IA». ¿Continuar?')) return;
   const sufijo = { ia: '', limpia: '_limpia', bruta: '_transcripcion' }[v];
@@ -589,5 +602,5 @@ $('#btnBorrar').onclick = async () => {
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   comprobarNavegador();
   irInicio();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=2').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=3').catch(() => {});
 })();
